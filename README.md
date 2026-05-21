@@ -262,6 +262,68 @@ result = await coordinator.execute_hierarchical(task)
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 8. 桌面系统 — 图形界面 + 语音交互
+
+完整的桌面应用程序，支持图形界面和语音对话：
+
+#### 功能特性
+
+| 功能 | 说明 |
+|------|------|
+| 图形界面 | PyQt6 驱动的 900x650 窗口 + 系统托盘 |
+| 绿色吉祥物 | 太极主题的交互式吉祥物 (6种状态) |
+| 语音对话 | TTS 语音合成 + STT 语音识别 |
+| 唇形同步 | 吉祥物说话时的唇形动画 |
+| Lottie 动画 | 平滑的状态切换动画 |
+
+#### 系统要求
+
+| 要求 | 说明 |
+|------|------|
+| Python | ≥ 3.11 |
+| 操作系统 | Windows / macOS / Linux (需要图形环境) |
+| 图形库 | PyQt6 依赖 libEGL.so.1 |
+
+#### 安装方式
+
+```bash
+# 方式 1: 安装完整桌面版 (推荐)
+pip install taiji-agent[desktop,voice]
+
+# 方式 2: 从源码安装
+cd taiji-agent
+pip install -e ".[desktop,voice]"
+```
+
+#### 启动方式
+
+```bash
+# 命令行启动
+taiji-desktop
+
+# 或直接运行模块
+python -m taiji_agent.desktop.main
+```
+
+#### 吉祥物状态
+
+| 状态 | 颜色 | Emoji | 说明 |
+|------|------|-------|------|
+| IDLE | #81C784 | 🟢 | 待机状态 |
+| THINKING | #4CAF50 | 💭 | 思考中 |
+| SPEAKING | #00E676 | 🗣️ | 说话中 |
+| LISTENING | #66BB6A | 👂 | 倾听中 |
+| WAITING | #A5D6A7 | ⏳ | 等待中 |
+| SLEEPING | #2E7D32 | 😴 | 休眠状态 |
+
+#### 可选依赖
+
+| 依赖 | 安装选项 | 用途 |
+|------|---------|------|
+| edge-tts | `voice` | 微软语音合成 (中文/英文) |
+| faster-whisper | `voice` | Whisper 语音识别 |
+| sounddevice | `voice` | 麦克风录音 |
+
 ---
 
 ## 🧩 项目架构
@@ -348,19 +410,36 @@ result = await coordinator.execute_hierarchical(task)
 ```bash
 # 克隆项目
 git clone https://github.com/xiejianjun000/taiji-agent.git
-cd taiji-agent/taiji-agent-python
+cd taiji-agent
 
 # 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
-# 安装
+# 安装基础版
+pip install -e "."
+
+# 安装完整版 (包含所有功能)
 pip install -e ".[all]"
 
 # 初始化
 taiji-agent init
 ```
+
+### 桌面系统 (可选)
+
+桌面系统提供图形界面和语音交互功能：
+
+```bash
+# 安装桌面版依赖
+pip install taiji-agent[desktop,voice]
+
+# 启动桌面应用
+taiji-desktop
+```
+
+> ⚠️ **系统要求**：桌面系统需要本地图形环境 (Windows/macOS/Linux 桌面)，CI 服务器等无图形环境无法运行。
 
 ### Taiji Verify 防幻觉验证
 
@@ -651,6 +730,7 @@ from taiji-agent import (
 - [x] Agent Handoffs 智能体交接
 - [x] Code Agent 代码代理
 - [x] Visual Workflow 工作流可视化
+- [x] **桌面系统 (PyQt6 + 语音交互)**
 
 ### v2.1.0（规划中）
 - [ ] 完善 WFGY 测试覆盖至 100%
@@ -659,7 +739,7 @@ from taiji-agent import (
 - [ ] 政务场景定制 (GovMCP)
 
 ### v2.5.0（规划中）
-- [ ] 语音模式 (TTS/STT)
+- [ ] ~~语音模式 (TTS/STT)~~ ✅ 已集成到桌面系统
 - [ ] 人格进化系统
 - [ ] 多语言优化
 
@@ -677,16 +757,16 @@ from taiji-agent import (
 # 1. Fork 仓库
 # 2. 克隆到本地
 git clone https://github.com/xiejianjun000/taiji-agent.git
-cd taiji-agent/taiji-agent-python
+cd taiji-agent
 
 # 3. 安装依赖
-pip install -e ".[dev]"
+pip install -e ".[dev,desktop,voice]"
 
 # 4. 创建功能分支
 git checkout -b feature/your-feature
 
 # 5. 运行测试
-python tests/stress_test.py
+python -m pytest tests/ -v
 
 # 6. 提交 PR
 ```

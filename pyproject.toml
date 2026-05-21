@@ -72,7 +72,7 @@ memory = [
 ]
 desktop = [
     "PyQt6>=6.8.0,<7.0.0",
-    "lottie>=0.8.0,<1.0.0",
+    "lottie>=0.7.0,<0.8.0",
 ]
 all = [
     "taiji_agent[dev,messaging,voice,browser,tokenjuice,memory,desktop]",
@@ -81,6 +81,7 @@ all = [
 [project.scripts]
 taiji-agent = "taiji_agent.cli:main"
 taiji-agent-cli = "taiji_agent.agent:main"
+taiji-desktop = "taiji_agent.desktop.main:main"
 
 [project.urls]
 Homepage = "https://github.com/xiejianjun000/taiji-agent"
