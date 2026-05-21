@@ -1,3 +1,4 @@
 """Memory Tree 分层记忆系统"""
+from .tree import MemoryTree, Layer, UserPersona
 
-__version__ = "1.0.0"
+__all__ = ["MemoryTree", "Layer", "UserPersona"]
