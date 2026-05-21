@@ -8,6 +8,7 @@ from PyQt6.QtGui import QColor, QPalette
 
 from .mascot.widget import MascotWidget
 from .chat_view import ChatView
+from .tray import TrayManager
 
 
 class TaijiWindow(QMainWindow):
@@ -21,6 +22,7 @@ class TaijiWindow(QMainWindow):
         self.setMinimumSize(900, 650)
 
         self._setup_ui()
+        self._setup_tray()
 
         self.setStyleSheet("""
             QMainWindow {
@@ -113,6 +115,11 @@ class TaijiWindow(QMainWindow):
         right_panel.addLayout(memory_layout)
 
         main_layout.addLayout(right_panel, 3)
+
+    def _setup_tray(self):
+        """设置系统托盘"""
+        self.tray = TrayManager(self)
+        self.tray.create_tray()
 
     def _on_send(self):
         """发送消息"""
