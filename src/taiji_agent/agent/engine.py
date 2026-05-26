@@ -259,7 +259,7 @@ class TaijiAgent:
                         )
                     )
 
-                    await self.memory.save_session([msg.model_dump() for msg in self.messages])
+                    self.memory.save_session([msg.model_dump() for msg in self.messages])
 
                     self.event_bus.emit_sync(
                         "agent:end",
