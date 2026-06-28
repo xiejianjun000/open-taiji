@@ -6,7 +6,7 @@ import pytest
 import asyncio
 from datetime import datetime
 
-from opentaiji.mcp import (
+from taiji_agent.mcp import (
     MCPServerAdapter,
     MCPServerConfig,
     MCPClientAdapter,
@@ -14,7 +14,7 @@ from opentaiji.mcp import (
     MCPProtocol,
     MCPTool,
 )
-from opentaiji.guardrails import (
+from taiji_agent.guardrails import (
     GuardrailManager,
     GuardrailConfig,
     ValidationResult,
@@ -23,7 +23,7 @@ from opentaiji.guardrails import (
     SensitiveDataFilter,
     QualityGate,
 )
-from opentaiji.observability import (
+from taiji_agent.observability import (
     TracingManager,
     TraceSpan,
     SpanKind,
@@ -31,26 +31,26 @@ from opentaiji.observability import (
     ConsoleExporter,
     FileExporter,
 )
-from opentaiji.hitl import (
+from taiji_agent.hitl import (
     ApprovalQueue,
     ApprovalConfig,
     ConfidenceGate,
     ConfidenceLevel,
     CheckpointManager,
 )
-from opentaiji.workflow import (
+from taiji_agent.workflow import (
     WorkflowEngine,
     WorkflowState,
     WorkflowConfig,
 )
-from opentaiji.handoffs import (
+from taiji_agent.handoffs import (
     HandoffManager,
     HandoffConfig,
     HandoffContext,
     HandoffDecision,
 )
-from opentaiji.code import CodeExecutor, SandboxConfig, ExecutionStatus
-from opentaiji.visual import (
+from taiji_agent.code import CodeExecutor, SandboxConfig, ExecutionStatus
+from taiji_agent.visual import (
     WorkflowExporter,
     MermaidExporter,
     ASCIIExporter,
@@ -285,7 +285,7 @@ class TestVisual:
         assert len(graph.edges) == 2
 
     def test_mermaid_exporter(self):
-        from opentaiji.visual import MermaidExporter, WorkflowGraph, NodeData, EdgeData
+        from taiji_agent.visual import MermaidExporter, WorkflowGraph, NodeData, EdgeData
         graph = WorkflowGraph(
             name="Test",
             nodes=[
@@ -299,7 +299,7 @@ class TestVisual:
         assert "flowchart" in output
 
     def test_ascii_exporter(self):
-        from opentaiji.visual import ASCIIExporter, WorkflowGraph, NodeData, EdgeData
+        from taiji_agent.visual import ASCIIExporter, WorkflowGraph, NodeData, EdgeData
         graph = WorkflowGraph(
             name="Test",
             nodes=[
@@ -313,14 +313,14 @@ class TestVisual:
         assert "Test" in output
 
     def test_json_exporter(self):
-        from opentaiji.visual import JSONExporter, WorkflowGraph
+        from taiji_agent.visual import JSONExporter, WorkflowGraph
         graph = WorkflowGraph(name="Test", nodes=[], edges=[])
         exporter = JSONExporter(pretty=True)
         output = exporter.export(graph)
         assert '"name": "Test"' in output
 
     def test_exporter_factory(self):
-        from opentaiji.visual import WorkflowExporterFactory, WorkflowGraph, ExportFormat
+        from taiji_agent.visual import WorkflowExporterFactory, WorkflowGraph, ExportFormat
         graph = WorkflowGraph(name="Test", nodes=[], edges=[])
         output = WorkflowExporterFactory.export(graph, ExportFormat.MERMAID)
         assert "flowchart" in output

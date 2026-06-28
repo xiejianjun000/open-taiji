@@ -25,14 +25,14 @@ from numpy.linalg import norm
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from opentaiji.taiji_verify.delta_s import DeltaSCalculator, DeltaSResult, GateZone
-from opentaiji.taiji_verify.kun_guard import KunGuard, ResidualCorrection, HazardLevel
-from opentaiji.taiji_verify.qian_advance import QianAdvance, PerturbationPath, StabilityScore
-from opentaiji.taiji_verify.fu_return import FuReturn, CollapseState, RecoveryAction
-from opentaiji.taiji_verify.xun_tune import XunTune, AttentionModulation
-from opentaiji.taiji_verify.polaris_compiler import PolarisCompiler, TaskAtom, AtomType, CompilationResult
-from opentaiji.taiji_verify.failure_modes import FailureModeDetector, FailureMode, FailureSeverity, FailureDetection
-from opentaiji.taiji_verify.engine import (
+from taiji_agent.taiji_verify.delta_s import DeltaSCalculator, DeltaSResult, GateZone
+from taiji_agent.taiji_verify.kun_guard import KunGuard, ResidualCorrection, HazardLevel
+from taiji_agent.taiji_verify.qian_advance import QianAdvance, PerturbationPath, StabilityScore
+from taiji_agent.taiji_verify.fu_return import FuReturn, CollapseState, RecoveryAction
+from taiji_agent.taiji_verify.xun_tune import XunTune, AttentionModulation
+from taiji_agent.taiji_verify.polaris_compiler import PolarisCompiler, TaskAtom, AtomType, CompilationResult
+from taiji_agent.taiji_verify.failure_modes import FailureModeDetector, FailureMode, FailureSeverity, FailureDetection
+from taiji_agent.taiji_verify.engine import (
     TaijiVerifyEngine, VerificationRequest, VerificationResponse, Verdict,
 )
 

@@ -19,6 +19,7 @@ from taiji_agent.providers.base import LLMProvider
 from taiji_agent.souls.loader import SoulLoader, inject_soul
 from taiji_agent.tools.registry import ToolRegistry
 from taiji_agent.taiji_verify import HallucinationDetector, SelfConsistencyChecker, WFGYVerifier, TaijiVerifyPro
+from taiji_agent.context.compressor import ContextCompressor, get_model_context_length
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +74,13 @@ class AgentConfig:
     enable_failover: bool = True
     fallback_providers: list[str] = field(default_factory=list)  # e.g. ["openai", "qwen"]
     sandbox_config: Optional[dict] = None
-    # 被动模式：只回答问题，不主动调用工具
-    passive_mode: bool = True
+    # 被动模式：只回答问题，不主动调用工具（默认关闭——继承Hermes主动执行风格）
+    passive_mode: bool = False
 
     # ── TaijiVerifyPro v2.0 配置（业界领先防幻觉系统）──
     taijiverifypro_enabled: bool = True       # 启用 TaijiVerifyPro（推荐）
-    taijiverifypro_threshold: float = 0.7     # 风险阈值（>=此值触发警告/拦截）
-    taijiverifypro_auto_block: bool = True    # 自动拦截高风险输出（>=0.85）
+    taijiverifypro_threshold: float = 0.7     # 风险阈值（>=此值触发警告）
+    taijiverifypro_auto_block: bool = False   # 自动拦截关闭（避免误杀正常回复）
     taijiverifypro_show_report: bool = True   # 在回复中显示检测报告
     taijiverifypenetration_enabled: bool = True  # 启用阈值穿透机制
 
@@ -173,6 +174,11 @@ class TaijiAgent:
         self.messages: list[Message] = []
         self.iteration_count = 0
 
+        # ── 上下文压缩器（模型感知，自动触发）──
+        ctx_len = get_model_context_length(self.config.model)
+        self.compressor = ContextCompressor(context_length=ctx_len)
+        self._context_overflow_count = 0  # 同一轮次 overflow 计数
+
         # 初始化提供商
         if self.provider is None:
             self._init_provider()
@@ -265,6 +271,10 @@ class TaijiAgent:
 
                 # 3. LLM 请求
                 self.event_bus.emit_sync("llm:request", {"iteration": self.iteration_count})
+
+                # ── 自动上下文压缩 ──
+                if self.iteration_count > 0:
+                    self._auto_compress(reason="pre-LLM budget check (run)")
 
                 provider = self.provider
                 if provider is None:
@@ -376,6 +386,27 @@ class TaijiAgent:
                     )
 
             except Exception as e:
+                err_str = str(e).lower()
+                # ── 上下文超限：自动压缩后重试 ──
+                if ('context length' in err_str or 'maximum context' in err_str
+                        or 'reduce the length' in err_str):
+                    self._context_overflow_count += 1
+                    if self._context_overflow_count <= 2:
+                        logger.warning(
+                            "Context overflow #%d at iter %d (run), aggressive compress + retry",
+                            self._context_overflow_count, self.iteration_count,
+                        )
+                        self._auto_compress(aggressive=True,
+                                            reason=f"overflow #{self._context_overflow_count}")
+                        self.event_bus.emit_sync("error", {
+                            "error": f"context_overflow_#{self._context_overflow_count}",
+                            "iteration": self.iteration_count,
+                        })
+                        continue
+                    else:
+                        logger.error("Context overflow retry exhausted (run)")
+                        break
+
                 logger.error(f"Error in iteration {self.iteration_count}: {e}", exc_info=True)
                 self.event_bus.emit_sync("error", {"error": str(e), "iteration": self.iteration_count})
                 self.iteration_count += 1
@@ -443,6 +474,10 @@ class TaijiAgent:
                 provider = self.provider
                 if provider is None:
                     raise ValueError("LLM provider not initialized")
+
+                # ── 自动上下文压缩：超过 75% 阈值时压缩历史消息 ──
+                if self.iteration_count > 0:
+                    self._auto_compress(reason="pre-LLM budget check")
 
                 # 单次流式调用：同时获取文本和工具调用
                 async for chunk in provider.stream_chat(
@@ -553,6 +588,29 @@ class TaijiAgent:
                 break
 
             except Exception as e:
+                err_str = str(e).lower()
+                # ── 上下文超限：自动压缩后重试（最多 2 次）──
+                if ('context length' in err_str or 'maximum context' in err_str
+                        or 'reduce the length' in err_str):
+                    self._context_overflow_count += 1
+                    if self._context_overflow_count <= 2:
+                        logger.warning(
+                            "Context overflow #%d at iter %d, aggressive compress + retry",
+                            self._context_overflow_count, self.iteration_count,
+                        )
+                        compressed = self._auto_compress(
+                            aggressive=True,
+                            reason=f"overflow #{self._context_overflow_count}",
+                        )
+                        yield f"\n[⚠ 上下文超限 (#{self._context_overflow_count})，已自动压缩并重试...]\n"
+                        consecutive_failures = 0
+                        continue
+                    else:
+                        logger.error("Context overflow retry exhausted after %d attempts",
+                                     self._context_overflow_count)
+                        yield "\n[❌ 上下文持续超限，已放弃。请用 /new 新建会话。]\n"
+                        break
+
                 logger.error(f"Stream error in iteration {self.iteration_count}: {e}")
                 yield f"[错误: {str(e)}]"
                 break
@@ -595,6 +653,38 @@ class TaijiAgent:
             "",
             inject_soul(soul),
             "",
+            "## 操作手册",
+            "",
+            "### 身份与称呼",
+            "- 你是\"小佳\"，技术管理者，负责xiejianjun000仓库及所有关联项目",
+            "- 私下对话称用户为\"军哥\"（最高权威）",
+            "- 所有文档、代码、日志、外部通信中不出现\"军哥\"，使用\"管理员\"或\"董事长\"",
+            "- 军哥说\"不要弄了\"/\"停下\"/\"暂停\" = 立即停止所有操作，不等收尾",
+            "",
+            "### 沟通铁律",
+            "- 使用中文交流",
+            "- 直接执行，不反复确认方向。收到明确任务立即行动，出错就改，不阻塞在确认环节",
+            "- 教程式输出：解释每一步操作，让编码新手也能跟上",
+            "- 自动化优先：一切手动步骤都是失败。脚本化、配置化、端到端。",
+            "- 禁止空回复：不说\"明白了\"/\"收到\"/\"马上安排\"，直接动手产出",
+            "- 军哥发\"???\"/\"什么情况???\"/\"你怎么回事\" = 严重警告，立刻停止讨论，直接动手",
+            "",
+            "### 紧急信号",
+            "- 用户发\"???\" = 极端不满 → 停止一切解释，立刻产出实质结果",
+            "- 用户发\"什么情况???\"/\"没反应\" = 链路断裂 → 立刻诊断并修复",
+            "- 连续多个\"???\" = 信任崩塌 → 秒级响应，不容解释",
+            "",
+            "### Memory 交互规则",
+            "- 保存持久化事实到memory：用户偏好、环境配置、工具特性、项目约定",
+            "- 用户偏好和纠正 > 环境事实 > 流程知识",
+            "- 用陈述句保存（\"项目使用pytest\"），不用祈使句（\"用pytest跑测试\"）",
+            "- 不保存临时任务状态、PR号、commit SHA等7天内会变的信息",
+            "",
+            "### 桌面自动化边界",
+            "- 截图、鼠标点击、键盘输入、窗口控制、剪贴板读写等操作属于特权操作",
+            "- 无明确授权时绝对禁用",
+            "- 即使有授权，不读剪贴板除非特别要求",
+            "",
             "## 运行环境",
             f"- 当前用户: {username}",
             f"- 用户主目录: {homedir}",
@@ -610,15 +700,13 @@ class TaijiAgent:
 
         prompt_parts.extend([
             "## 输出格式要求",
-            "- 使用纯文本，禁止使用 Markdown 格式",
-            "- 禁止使用 **加粗**、## 标题、| 表格、* 列表等 Markdown 语法",
-            "- 禁止使用 ``` 代码块，代码直接缩进展示",
-            "- 每次回复不超过 3 句话，除非用户明确要求详细说明",
-            "- 禁止输出清单体（1. 2. 3.），用自然段落代替",
+            "- 优先使用结构化输出（表格、列表、分段），让信息清晰易读",
+            "- 可以适当使用 Markdown 格式增强可读性（标题、加粗、代码块等）",
+            "- 回复简洁有力，但要确保信息完整不遗漏",
+            "- 需要执行操作时直接调用工具，不要只描述计划",
             "",
             "## 行为准则",
             "- 所有陈述必须有事实依据，不确定时明确标注",
-            "- 需要执行操作时直接调用工具，不要只描述计划",
             "- 工具执行失败时尝试替代方案",
             "- 完成用户明确要求的任务后立即停止回复，不要自作主张扩展或追加建议",
         ])
@@ -628,6 +716,36 @@ class TaijiAgent:
     def _assemble_prompt(self) -> list[dict]:
         """组装提示"""
         return [msg.model_dump() for msg in self.messages]
+
+    def _auto_compress(self, aggressive=False, reason=""):
+        """自动压缩上下文 — 超过阈值时触发
+
+        Args:
+            aggressive: 激进模式（使用 50% 阈值，保留更少历史）
+            reason: 触发原因（用于日志）
+        Returns:
+            bool: 是否执行了压缩
+        """
+        if len(self.messages) <= self.compressor.protect_first_n + self.compressor.protect_last_n:
+            return False
+
+        threshold = 0.5 if aggressive else 0.75
+        if not self.compressor.needs_compression(self.messages, threshold):
+            return False
+
+        old_len = len(self.messages)
+        est_before = self.compressor.estimate_total_tokens(self.messages)
+        self.messages = self.compressor.compress_if_needed(self.messages, threshold)
+        new_len = len(self.messages)
+        est_after = self.compressor.estimate_total_tokens(self.messages)
+
+        mode = "aggressive" if aggressive else "normal"
+        logger.info(
+            "Context auto-compressed (%s)%s: %d→%d msgs, ~%d→~%d tokens",
+            mode, f" [{reason}]" if reason else "",
+            old_len, new_len, est_before, est_after,
+        )
+        return True
 
     async def _verify_and_annotate(self, response) -> Any:
         """Taiji Verify 验证并注解（优先使用 TaijiVerifyPro v2.0）"""

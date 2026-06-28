@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import shutil
 
-from opentaiji.multi_tenant import (
+from taiji_agent.multi_tenant import (
     # 隔离模型
     IsolationStrategy,
     TenantStatus,

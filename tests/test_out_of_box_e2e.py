@@ -4,7 +4,7 @@ Taiji Agent 2.1 — 开箱即用全流程 E2E 测试
 模拟：安装 → 首次对话 → 全能力逐一验证
 
 测试流程:
-  1. 环境初始化 (opentaiji init)
+  1. 环境初始化 (taiji_agent init)
   2. 首次对话启动 (banner + 系统提示)
   3. 记忆能力 (save/search/session/todo)
   4. 进化能力 (peer card + context + sentiment)
@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # ═══════════════════════════════════════════════════════════════
 
 class TestPhase0_Init:
-    """阶段 0 — 开箱初始化 (opentaiji init)"""
+    """阶段 0 — 开箱初始化 (taiji_agent init)"""
 
     def test_init_creates_directories(self):
         """初始化创建所有必要目录"""
@@ -52,21 +52,21 @@ class TestPhase0_Init:
             config_file.write_text("""provider: anthropic
 model: claude-sonnet-4-20250514
 soul: default
-wfgy_enabled: true
-wfgy_threshold: 0.5
+verify_enabled: true
+verify_threshold: 0.5
 max_iterations: 25
 stream: true
 """)
             assert config_file.exists()
             config = config_file.read_text()
             assert "anthropic" in config
-            assert "wfgy_enabled: true" in config
+            assert "verify_enabled: true" in config
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_default_soul_created(self):
         """默认 Soul 文件创建"""
-        from opentaiji.souls.loader import SoulLoader
+        from taiji_agent.souls.loader import SoulLoader
         tmp = tempfile.mkdtemp()
         try:
             loader = SoulLoader(souls_dir=Path(tmp))
@@ -80,7 +80,7 @@ stream: true
 
     def test_session_store_initialized(self):
         """会话存储 SQLite 初始化"""
-        from opentaiji.cli.main import SessionStore
+        from taiji_agent.cli.main import SessionStore
         tmp = tempfile.mkdtemp()
         try:
             db_path = os.path.join(tmp, "test.db")
@@ -107,10 +107,10 @@ class TestPhase1_FirstConversation:
 
     def test_agent_instantiation_first_time(self):
         """Agent 首次实例化"""
-        from opentaiji.agent.engine import AgentConfig, TaijiAgent
+        from taiji_agent.agent.engine import AgentConfig, TaijiAgent
 
         t0 = time.perf_counter()
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         elapsed = time.perf_counter() - t0
 
         assert agent is not None
@@ -118,32 +118,23 @@ class TestPhase1_FirstConversation:
 
     def test_system_prompt_content(self):
         """系统提示包含所有必要组件"""
-        from opentaiji.agent.engine import AgentConfig, TaijiAgent
+        from taiji_agent.agent.engine import AgentConfig, TaijiAgent
 
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=True, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=True, enable_sandbox=False))
         prompt = agent._build_system_prompt()
 
         # 必须包含的组件
-        checks = {
-            "身份": "太极 Agent",
-            "框架": "OpenTaiji",
-            "防幻觉": "WFGY",
-            "行为约束": "事实依据",
-            "太极哲学": "阳",
-            "太极哲学": "阴",
-            "不确定性": "不确定",
-            "工具感知": True,  # 长度充分
-        }
-        assert "太极 Agent" in prompt, "缺少身份标识"
-        assert "WFGY" in prompt, "缺少防幻觉指南"
+        assert "小佳" in prompt, "缺少身份标识"
+        assert "Taiji" in prompt, "缺少框架标识"
         assert "阳" in prompt and "阴" in prompt, "缺少太极哲学"
-        assert len(prompt) > 300, f"系统提示过短: {len(prompt)} 字符"
+        assert "事实依据" in prompt, "缺少行为约束"
+        assert len(prompt) > 500, f"系统提示过短: {len(prompt)} 字符"
 
     def test_first_messages_assembled(self):
         """首轮消息组装: system + user"""
-        from opentaiji.agent.engine import AgentConfig, TaijiAgent, Message
+        from taiji_agent.agent.engine import AgentConfig, TaijiAgent, Message
 
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         system_prompt = agent._build_system_prompt()
         agent.messages = [
             Message(role="system", content=system_prompt),
@@ -158,8 +149,8 @@ class TestPhase1_FirstConversation:
 
     def test_banner_format(self):
         """启动横幅格式正确"""
-        from opentaiji.cli.main import InteractiveAgent
-        from opentaiji.agent.engine import AgentConfig
+        from taiji_agent.cli.main import InteractiveAgent
+        from taiji_agent.agent.engine import AgentConfig
 
         ia = InteractiveAgent(AgentConfig())
         # 验证横幅逻辑存在
@@ -170,7 +161,7 @@ class TestPhase1_FirstConversation:
 
     def test_tool_count_in_banner(self):
         """横幅显示工具数量"""
-        from opentaiji.tools.registry import registry
+        from taiji_agent.tools.registry import registry
         tool_count = len(registry.list_tools())
         assert tool_count >= 15, f"工具数量 {tool_count} < 15"
 
@@ -201,7 +192,7 @@ class TestPhase2_Memory:
 
     def test_short_term_memory(self):
         """短期记忆: save → get → search"""
-        from opentaiji.memory.session import SessionMemory
+        from taiji_agent.memory.session import SessionMemory
         mem = SessionMemory(memory_dir=Path(self.tmpdir))
 
         # 写入
@@ -219,7 +210,7 @@ class TestPhase2_Memory:
 
     def test_session_memory(self):
         """会话记忆: 保存/搜索完整对话"""
-        from opentaiji.memory.session import SessionMemory
+        from taiji_agent.memory.session import SessionMemory
         mem = SessionMemory(memory_dir=Path(self.tmpdir))
 
         conversation = [
@@ -238,7 +229,7 @@ class TestPhase2_Memory:
 
     def test_todo_memory(self):
         """Todo 记忆: 完整 CRUD"""
-        from opentaiji.memory.session import SessionMemory
+        from taiji_agent.memory.session import SessionMemory
         mem = SessionMemory(memory_dir=Path(self.tmpdir))
 
         mem.add_todo("设计数据库 schema")
@@ -256,7 +247,7 @@ class TestPhase2_Memory:
 
     def test_memory_persistence(self):
         """记忆持久化: 跨实例验证"""
-        from opentaiji.memory.session import SessionMemory
+        from taiji_agent.memory.session import SessionMemory
 
         mem1 = SessionMemory(memory_dir=Path(self.tmpdir))
         mem1.save("persist_test", "value_123")
@@ -270,7 +261,7 @@ class TestPhase2_Memory:
 
     def test_sqlite_session_persistence(self):
         """SQLite 会话持久化: 写入 → 查询"""
-        from opentaiji.cli.main import SessionStore
+        from taiji_agent.cli.main import SessionStore
 
         db_path = os.path.join(self.tmpdir, "sessions.db")
         store = SessionStore(db_path=db_path)
@@ -318,7 +309,7 @@ class TestPhase3_Evolution:
 
     def test_peer_card_evolution(self):
         """用户画像进化: 多次交互累积"""
-        from opentaiji.learning.loop import HonchoMemory
+        from taiji_agent.learning.loop import HonchoMemory
 
         honcho = HonchoMemory(memory_dir=Path(self.tmpdir))
 
@@ -345,7 +336,7 @@ class TestPhase3_Evolution:
 
     def test_context_accumulation(self):
         """上下文累积与回忆"""
-        from opentaiji.learning.loop import HonchoMemory
+        from taiji_agent.learning.loop import HonchoMemory
 
         honcho = HonchoMemory(memory_dir=Path(self.tmpdir))
 
@@ -385,7 +376,7 @@ class TestPhase3_Evolution:
 
     def test_user_context_prompt_evolution(self):
         """用户上下文提示随交互进化"""
-        from opentaiji.learning.loop import HonchoMemory
+        from taiji_agent.learning.loop import HonchoMemory
 
         honcho = HonchoMemory(memory_dir=Path(self.tmpdir))
 
@@ -426,9 +417,9 @@ class TestPhase4_SelfLearningLoop:
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def _init_loop(self):
-        from opentaiji.learning.loop import HonchoMemory, SelfImprovingLoop
-        from opentaiji.skills.hub import SkillManager
-        from opentaiji.wfgy import WFGYVerifier
+        from taiji_agent.learning.loop import HonchoMemory, SelfImprovingLoop
+        from taiji_agent.skills.hub import SkillManager
+        from taiji_agent.taiji_verify import WFGYVerifier
 
         self.honcho = HonchoMemory(memory_dir=Path(self.tmpdir))
         skills_dir = Path(self.tmpdir) / "skills"
@@ -557,7 +548,7 @@ class TestPhase5_SkillGeneration:
         self.tmpdir = tempfile.mkdtemp()
         skills_dir = Path(self.tmpdir) / "skills"
         skills_dir.mkdir(exist_ok=True)
-        from opentaiji.skills.hub import SkillManager
+        from taiji_agent.skills.hub import SkillManager
         self.mgr = SkillManager(skills_dir=skills_dir)
 
     def teardown_method(self):
@@ -565,7 +556,7 @@ class TestPhase5_SkillGeneration:
 
     def test_market_skills_available(self):
         """技能市场有预置技能"""
-        from opentaiji.skills.hub import SkillMarket
+        from taiji_agent.skills.hub import SkillMarket
         market = SkillMarket()
         skills = market.browse()
         assert len(skills) >= 7
@@ -633,7 +624,7 @@ class TestPhase5_SkillGeneration:
 
     def test_skill_creator_from_conversation(self):
         """从对话中自动提取技能"""
-        from opentaiji.skills.hub import SkillCreator
+        from taiji_agent.skills.hub import SkillCreator
 
         creator = SkillCreator(self.mgr)
         # 足够长的对话 + 多个复杂关键词 以触发 complexity >= 0.6
@@ -685,7 +676,7 @@ class TestPhase6_Thinking:
 
     def test_wfgy_verification_flow(self):
         """WFGY 验证流程"""
-        from opentaiji.wfgy import WFGYVerifier
+        from taiji_agent.taiji_verify import WFGYVerifier
 
         wfgy = WFGYVerifier()
         # 可信内容
@@ -695,7 +686,7 @@ class TestPhase6_Thinking:
 
     def test_hallucination_detection_flow(self):
         """幻觉检测流程"""
-        from opentaiji.wfgy import HallucinationDetector
+        from taiji_agent.taiji_verify import HallucinationDetector
 
         detector = HallucinationDetector()
 
@@ -709,7 +700,7 @@ class TestPhase6_Thinking:
 
     def test_self_consistency_check(self):
         """自我一致性检查"""
-        from opentaiji.wfgy import SelfConsistencyChecker
+        from taiji_agent.taiji_verify import SelfConsistencyChecker
 
         checker = SelfConsistencyChecker()
         # 添加多次回答
@@ -721,9 +712,9 @@ class TestPhase6_Thinking:
 
     def test_agent_wfgy_integration(self):
         """Agent 中 WFGY 集成"""
-        from opentaiji.agent.engine import AgentConfig, TaijiAgent
+        from taiji_agent.agent.engine import AgentConfig, TaijiAgent
 
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=True, wfgy_threshold=0.5, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=True, verify_threshold=0.5, enable_sandbox=False))
 
         class MockResponse:
             content = "The Python programming language was created by Guido van Rossum."
@@ -744,7 +735,7 @@ class TestPhase7_Heartbeat:
 
     def test_plugin_health_states(self):
         """插件健康状态完整覆盖"""
-        from opentaiji.plugin.plugin_base import PluginHealth, PluginState
+        from taiji_agent.plugin.plugin_base import PluginHealth, PluginState
 
         # 所有健康状态可访问
         states = [PluginHealth.HEALTHY, PluginHealth.DEGRADED, PluginHealth.UNHEALTHY, PluginHealth.ERROR]
@@ -760,7 +751,7 @@ class TestPhase7_Heartbeat:
 
     def test_tool_definition_heartbeat(self):
         """工具定义健康"""
-        from opentaiji.plugin.plugin_base import ToolDefinition
+        from taiji_agent.plugin.plugin_base import ToolDefinition
 
         td = ToolDefinition(
             name="heartbeat_test",
@@ -772,7 +763,7 @@ class TestPhase7_Heartbeat:
 
     def test_hook_registration_heartbeat(self):
         """钩子注册心跳"""
-        from opentaiji.plugin.plugin_base import HookRegistration
+        from taiji_agent.plugin.plugin_base import HookRegistration
 
         hook = HookRegistration(
             event="agent:heartbeat",
@@ -784,7 +775,7 @@ class TestPhase7_Heartbeat:
 
     def test_failover_health(self):
         """故障转移健康摘要"""
-        from opentaiji.providers.failover import (
+        from taiji_agent.providers.failover import (
             ProviderRouter, ProviderEndpoint, ProviderStatus,
         )
 
@@ -816,7 +807,7 @@ class TestPhase7_Heartbeat:
 
     def test_taiji_verify_engine_heartbeat(self):
         """太极验证引擎健康"""
-        from opentaiji.taiji_verify.engine import TaijiVerifyEngine
+        from taiji_agent.taiji_verify.engine import TaijiVerifyEngine
 
         engine = TaijiVerifyEngine(embedding_dim=64)
         health = engine.system_health
@@ -832,7 +823,7 @@ class TestPhase8_ToolCalling:
     """阶段 8 — 工具调用全能力"""
 
     def setup_method(self):
-        from opentaiji.tools.registry import ToolRegistry
+        from taiji_agent.tools.registry import ToolRegistry
         self.registry = ToolRegistry()
 
     def test_file_operations(self):
@@ -946,8 +937,8 @@ class TestPhase9_Commands:
 
     def test_all_commands_registered(self):
         """所有命令已注册"""
-        from opentaiji.cli.main import InteractiveAgent
-        from opentaiji.agent.engine import AgentConfig
+        from taiji_agent.cli.main import InteractiveAgent
+        from taiji_agent.agent.engine import AgentConfig
 
         ia = InteractiveAgent(AgentConfig())
         commands = ia._commands
@@ -977,8 +968,8 @@ class TestPhase9_Commands:
 
     def test_compact_command_available(self):
         """/compact 命令可用"""
-        from opentaiji.cli.main import InteractiveAgent
-        from opentaiji.agent.engine import AgentConfig, Message
+        from taiji_agent.cli.main import InteractiveAgent
+        from taiji_agent.agent.engine import AgentConfig, Message
 
         ia = InteractiveAgent(AgentConfig())
         # 构建足够的消息以触发压缩（需要 > 4 + recent 6 = 10 条才能压缩）
@@ -994,8 +985,8 @@ class TestPhase9_Commands:
 
     def test_help_table_contains_new_commands(self):
         """/help 表格包含 /compact"""
-        from opentaiji.cli.main import InteractiveAgent
-        from opentaiji.agent.engine import AgentConfig
+        from taiji_agent.cli.main import InteractiveAgent
+        from taiji_agent.agent.engine import AgentConfig
 
         ia = InteractiveAgent(AgentConfig())
         # 调用 _show_help 看是否含 /compact
@@ -1013,10 +1004,10 @@ class TestPhase10_FullClosedLoop:
         """模拟用户完整交互流程"""
         tmpdir = tempfile.mkdtemp()
         try:
-            from opentaiji.learning.loop import HonchoMemory, SelfImprovingLoop
-            from opentaiji.skills.hub import SkillManager
-            from opentaiji.wfgy import WFGYVerifier
-            from opentaiji.memory.session import SessionMemory
+            from taiji_agent.learning.loop import HonchoMemory, SelfImprovingLoop
+            from taiji_agent.skills.hub import SkillManager
+            from taiji_agent.taiji_verify import WFGYVerifier
+            from taiji_agent.memory.session import SessionMemory
 
             # 1. 初始化
             honcho = HonchoMemory(memory_dir=Path(tmpdir))
@@ -1081,9 +1072,9 @@ class TestPhase10_FullClosedLoop:
         """多轮学习递进"""
         tmpdir = tempfile.mkdtemp()
         try:
-            from opentaiji.learning.loop import HonchoMemory, SelfImprovingLoop
-            from opentaiji.skills.hub import SkillManager
-            from opentaiji.wfgy import WFGYVerifier
+            from taiji_agent.learning.loop import HonchoMemory, SelfImprovingLoop
+            from taiji_agent.skills.hub import SkillManager
+            from taiji_agent.taiji_verify import WFGYVerifier
 
             honcho = HonchoMemory(memory_dir=Path(tmpdir))
             skills_dir = Path(tmpdir) / "skills"

@@ -12,13 +12,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from opentaiji.agent.engine import AgentConfig, TaijiAgent
-from opentaiji.wfgy import WFGYVerifier, HallucinationDetector, SelfConsistencyChecker
-from opentaiji.security.sandbox import Sandbox, SandboxConfig, SandboxPool, SecurityFence, SandboxStatus
-from opentaiji.providers.failover import ProviderRouter, ProviderEndpoint, FailoverConfig
-from opentaiji.events.bus import EventBus
-from opentaiji.tools.registry import ToolRegistry
-from opentaiji.cli.main import SessionStore
+from taiji_agent.agent.engine import AgentConfig, TaijiAgent
+from taiji_agent.taiji_verify import WFGYVerifier, HallucinationDetector, SelfConsistencyChecker
+from taiji_agent.security.sandbox import Sandbox, SandboxConfig, SandboxPool, SecurityFence, SandboxStatus
+from taiji_agent.providers.failover import ProviderRouter, ProviderEndpoint, FailoverConfig
+from taiji_agent.events.bus import EventBus
+from taiji_agent.tools.registry import ToolRegistry
+from taiji_agent.cli.main import SessionStore
 
 @dataclass
 class BenchResult:
@@ -65,7 +65,7 @@ class TestAgentConcurrency:
     def test_bulk_instantiation(self):
         gc.collect(); tracemalloc.start()
         mem_before = tracemalloc.get_traced_memory()[0]
-        agents = [TaijiAgent(config=AgentConfig(wfgy_enabled=False)) for _ in range(500)]
+        agents = [TaijiAgent(config=AgentConfig(verify_enabled=False)) for _ in range(500)]
         mem_after = tracemalloc.get_traced_memory()[0]; tracemalloc.stop()
         mem_kb = (mem_after - mem_before) / 500 / 1024
         assert mem_kb < 10000, f"Agent memory {mem_kb:.1f}KB > 500KB"
@@ -74,7 +74,7 @@ class TestAgentConcurrency:
     def test_concurrent_creation(self):
         results = []; errors = []
         def create(): 
-            try: results.append(TaijiAgent(config=AgentConfig(wfgy_enabled=False)))
+            try: results.append(TaijiAgent(config=AgentConfig(verify_enabled=False)))
             except Exception as e: errors.append(str(e))
         threads = [threading.Thread(target=create) for _ in range(30)]
         [t.start() for t in threads]; [t.join(timeout=10) for t in threads]
@@ -83,7 +83,7 @@ class TestAgentConcurrency:
 
     def test_rapid_create_destroy(self):
         for i in range(300):
-            a = TaijiAgent(config=AgentConfig(wfgy_enabled=False)); del a
+            a = TaijiAgent(config=AgentConfig(verify_enabled=False)); del a
             if i % 100 == 0: gc.collect()
 
 class TestHallucinationThroughput:
@@ -207,7 +207,7 @@ class TestMemoryAndResources:
     def test_agent_cycle_no_leak(self):
         gc.collect(); tracemalloc.start()
         for _ in range(100):
-            a = TaijiAgent(config=AgentConfig(wfgy_enabled=False)); del a
+            a = TaijiAgent(config=AgentConfig(verify_enabled=False)); del a
             gc.collect()
         _, peak = tracemalloc.get_traced_memory(); tracemalloc.stop()
         assert peak / 1024 / 1024 < 300

@@ -9,10 +9,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from opentaiji.agent.engine import AgentConfig, TaijiAgent
-from opentaiji.souls.loader import SoulLoader, inject_soul
-from opentaiji.cli.main import InteractiveAgent, SessionStore, load_config
-from opentaiji.wfgy import WFGYVerifier, HallucinationDetector
+from taiji_agent.agent.engine import AgentConfig, TaijiAgent
+from taiji_agent.souls.loader import SoulLoader, inject_soul
+from taiji_agent.cli.main import InteractiveAgent, SessionStore, load_config
+from taiji_agent.taiji_verify import WFGYVerifier, HallucinationDetector
 
 
 class TestOnboardingBanner:
@@ -27,13 +27,13 @@ class TestOnboardingBanner:
 
     def test_banner_shows_wfgy_status(self):
         """横幅显示 WFGY 防幻觉状态 — Taiji 特有功能标记"""
-        config_wfgy_on = AgentConfig(wfgy_enabled=True)
+        config_wfgy_on = AgentConfig(verify_enabled=True)
         ia = InteractiveAgent(config_wfgy_on)
-        assert ia.config.wfgy_enabled is True
+        assert ia.config.verify_enabled is True
 
-        config_wfgy_off = AgentConfig(wfgy_enabled=False)
+        config_wfgy_off = AgentConfig(verify_enabled=False)
         ia2 = InteractiveAgent(config_wfgy_off)
-        assert ia2.config.wfgy_enabled is False
+        assert ia2.config.verify_enabled is False
 
     def test_banner_shows_stream_status(self):
         """横幅显示流式输出状态 — Claude Code 默认流式"""
@@ -59,21 +59,21 @@ class TestSystemPrompt:
 
     def test_system_prompt_has_identity(self):
         """系统提示包含 Agent 身份标识"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         prompt = agent._build_system_prompt()
         assert "太极 Agent" in prompt
         assert "OpenTaiji" in prompt
 
     def test_system_prompt_has_wfgy_guide(self):
         """系统提示包含防幻觉指南 — Claude Code 无此能力"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=True, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=True, enable_sandbox=False))
         prompt = agent._build_system_prompt()
         assert "WFGY" in prompt
         assert "事实依据" in prompt
 
     def test_system_prompt_has_taiji_philosophy(self):
         """系统提示包含太极哲学 — 阴阳平衡"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         prompt = agent._build_system_prompt()
         assert "阳" in prompt
         assert "阴" in prompt
@@ -81,7 +81,7 @@ class TestSystemPrompt:
 
     def test_system_prompt_has_tool_awareness(self):
         """系统提示体现工具使用意识"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         prompt = agent._build_system_prompt()
         # 工具系统在 Agent Loop 中动态注入，但系统提示不含具体工具
         assert isinstance(prompt, str)
@@ -89,11 +89,11 @@ class TestSystemPrompt:
 
     def test_first_turn_message_structure(self):
         """首轮对话消息结构: system + user"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=False, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=False, enable_sandbox=False))
         agent.messages = []  
         # 模拟 run() 的第一步
         system_prompt = agent._build_system_prompt()
-        from opentaiji.agent.engine import Message
+        from taiji_agent.agent.engine import Message
         agent.messages.append(Message(role="system", content=system_prompt))
         agent.messages.append(Message(role="user", content="你好"))
         
@@ -232,15 +232,15 @@ class TestSoulSystem:
 class TestWFGYFirstContact:
     """WFGY 防幻觉在首次对话中的表现"""
 
-    def test_wfgy_enabled_by_default(self):
+    def test_verify_enabled_by_default(self):
         """WFGY 默认启用"""
         config = AgentConfig()
-        assert config.wfgy_enabled is True
+        assert config.verify_enabled is True
 
-    def test_wfgy_threshold_default(self):
+    def test_verify_threshold_default(self):
         """WFGY 阈值默认 0.5"""
         config = AgentConfig()
-        assert config.wfgy_threshold == 0.5
+        assert config.verify_threshold == 0.5
 
     def test_wfgy_verifier_instant(self):
         """WFGY 验证器立即可用"""
@@ -256,7 +256,7 @@ class TestWFGYFirstContact:
 
     def test_wfgy_in_system_prompt(self):
         """WFGY 哲学注入系统提示"""
-        agent = TaijiAgent(config=AgentConfig(wfgy_enabled=True, enable_sandbox=False))
+        agent = TaijiAgent(config=AgentConfig(verify_enabled=True, enable_sandbox=False))
         prompt = agent._build_system_prompt()
         assert "WFGY" in prompt
 
@@ -279,7 +279,7 @@ class TestOnboardingGapAnalysis:
 
     def test_claude_shows_version(self):
         """Claude Code 显示版本号，Taiji 通过 --version 显示"""
-        from opentaiji.cli.main import cli
+        from taiji_agent.cli.main import cli
         assert cli is not None
         # CLI 通过 click.version_option 显示版本
 

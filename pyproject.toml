@@ -1,8 +1,8 @@
 [project]
-name = "opentaiji"
+name = "taiji-agent"
 version = "2.1.0"
-description = "OpenTaiji 2.0 - 融合Hermes Agent全部功能的AI智能体框架，基于太极哲学和WFGY防幻觉"
-authors = [{name = "OpenTaiji Team", email = "team@opentaiji.dev"}]
+description = "Taiji Agent 2.0 - 融合Hermes Agent全部功能的AI智能体框架，基于太极哲学和WFGY防幻觉"
+authors = [{name = "Taiji Agent Team", email = "team@taiji-agent.dev"}]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11"
@@ -65,16 +65,16 @@ browser = [
     "selenium>=4.25.0,<5.0.0",
 ]
 all = [
-    "opentaiji[dev,messaging,voice,browser]",
+    "taiji_agent[dev,messaging,voice,browser]",
 ]
 
 [project.scripts]
-opentaiji = "opentaiji.cli:main"
-opentaiji-agent = "opentaiji.agent:main"
+taiji_agent = "taiji_agent.cli:main"
+taiji_agent-agent = "taiji_agent.agent:main"
 
 [project.urls]
-Homepage = "https://opentaiji.dev"
-Documentation = "https://opentaiji.dev/docs"
+Homepage = "https://taiji_agent.dev"
+Documentation = "https://taiji_agent.dev/docs"
 Repository = "https://github.com/xiejianjun000/open-taiji"
 Issues = "https://github.com/xiejianjun000/open-taiji/issues"
 
@@ -106,7 +106,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src/opentaiji"]
+source = ["src/taiji_agent"]
 branch = true
 omit = ["tests/*", "**/__pycache__/*"]
 

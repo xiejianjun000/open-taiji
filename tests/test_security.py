@@ -24,7 +24,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from opentaiji.security import (
+from taiji_agent.security import (
     # Sandbox
     Sandbox,
     SandboxConfig,
@@ -214,7 +214,7 @@ class TestKeyManager(unittest.TestCase):
         # 如果没有活跃密钥，需要先生成一个
         if not result.success and "No active key" in result.error:
             # 手动创建一个活跃的SM4_SESSION密钥
-            from opentaiji.security.key_manager import KeyMetadata, KeyStatus
+            from taiji_agent.security.key_manager import KeyMetadata, KeyStatus
             key_id = self.manager._generate_key(
                 KeyType.SM4_SESSION,
                 created_at=time.time(),

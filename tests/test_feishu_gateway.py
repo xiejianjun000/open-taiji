@@ -25,7 +25,7 @@ import sys
 
 async def test_feishu_direct(app_id: str, app_secret: str):
     """直接测试 FeishuAdapter（不经过网关）"""
-    from opentaiji.gateway.feishu import FeishuAdapter
+    from taiji_agent.gateway.feishu import FeishuAdapter
 
     print("=" * 60)
     print("飞书网关集成测试")
@@ -72,7 +72,7 @@ async def test_feishu_direct(app_id: str, app_secret: str):
 
 async def test_feishu_gateway(app_id: str, app_secret: str):
     """通过 MessageGateway 测试飞书集成"""
-    from opentaiji.gateway.core import (
+    from taiji_agent.gateway.core import (
         Message,
         MessageGateway,
         create_gateway,
@@ -142,7 +142,7 @@ async def test_feishu_plugin():
     import logging
     from dataclasses import dataclass
 
-    from opentaiji.plugin.plugins.feishu_plugin import FeishuPlugin
+    from taiji_agent.plugin.plugins.feishu_plugin import FeishuPlugin
 
     logging.basicConfig(level=logging.INFO)
 
@@ -197,7 +197,7 @@ async def main():
         return
 
     if args.skip_ws:
-        from opentaiji.gateway.feishu import FeishuAdapter
+        from taiji_agent.gateway.feishu import FeishuAdapter
         adapter = FeishuAdapter({"app_id": app_id, "app_secret": app_secret})
         result = await adapter.test_connection()
         print(json.dumps(result, ensure_ascii=False, indent=2))

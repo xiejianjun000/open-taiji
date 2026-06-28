@@ -86,7 +86,7 @@ def test_import_core():
     tracemalloc.start()
     start_mem = tracemalloc.get_traced_memory()[0]
     
-    from opentaiji import (
+    from taiji_agent import (
         TaijiAgent, AgentConfig,
         WFGYVerifier, HallucinationDetector,
         SoulLoader, Soul,
@@ -104,9 +104,9 @@ run_test("核心模块导入", test_import_core)
 
 def test_import_providers():
     """测试 Provider 导入"""
-    from opentaiji.providers.anthropic import AnthropicProvider
-    from opentaiji.providers.openai import OpenAIProvider
-    from opentaiji.providers.chinese import (
+    from taiji_agent.providers.anthropic import AnthropicProvider
+    from taiji_agent.providers.openai import OpenAIProvider
+    from taiji_agent.providers.chinese import (
         QwenProvider, GLMProvider, KimiProvider, DoubaoProvider
     )
     return {"providers": 6}
@@ -117,7 +117,7 @@ run_test("Provider 模块导入", test_import_providers)
 
 def test_import_gateway():
     """测试网关导入"""
-    from opentaiji.gateway import (
+    from taiji_agent.gateway import (
         MessageGateway, create_gateway,
         TelegramAdapter, DiscordAdapter,
         WeChatWorkAdapter, DingTalkAdapter, FeishuAdapter
@@ -130,7 +130,7 @@ run_test("网关模块导入", test_import_gateway)
 
 def test_import_skills():
     """测试技能模块导入"""
-    from opentaiji.skills import SkillManager, Skill, SkillCreator
+    from taiji_agent.skills import SkillManager, Skill, SkillCreator
     return {}
 
 
@@ -139,7 +139,7 @@ run_test("技能模块导入", test_import_skills)
 
 def test_import_learning():
     """测试学习模块导入"""
-    from opentaiji.learning import HonchoMemory, SelfImprovingLoop
+    from taiji_agent.learning import HonchoMemory, SelfImprovingLoop
     return {}
 
 
@@ -157,7 +157,7 @@ def test_instance_agent():
     """测试 Agent 实例化"""
     tracemalloc.start()
     
-    from opentaiji import TaijiAgent, AgentConfig
+    from taiji_agent import TaijiAgent, AgentConfig
     
     agent = TaijiAgent(config=AgentConfig())
     
@@ -172,7 +172,7 @@ run_test("Agent 实例化", test_instance_agent)
 
 def test_instance_verifiers():
     """测试验证器实例化"""
-    from opentaiji import WFGYVerifier, HallucinationDetector
+    from taiji_agent import WFGYVerifier, HallucinationDetector
     
     verifiers = [WFGYVerifier() for _ in range(100)]
     detectors = [HallucinationDetector() for _ in range(100)]
@@ -185,7 +185,7 @@ run_test("验证器批量实例化 (100x)", test_instance_verifiers)
 
 def test_instance_soul_loader():
     """测试 Soul 加载器"""
-    from opentaiji import SoulLoader
+    from taiji_agent import SoulLoader
     
     loader = SoulLoader()
     souls = loader.list_souls()
@@ -200,7 +200,7 @@ run_test("Soul 加载器", test_instance_soul_loader)
 
 def test_instance_tool_registry():
     """测试工具注册表"""
-    from opentaiji import ToolRegistry
+    from taiji_agent import ToolRegistry
     
     registry = ToolRegistry()
     tools = registry.list_tools()
@@ -213,7 +213,7 @@ run_test("工具注册表", test_instance_tool_registry)
 
 def test_instance_skill_manager():
     """测试技能管理器"""
-    from opentaiji.skills import SkillManager
+    from taiji_agent.skills import SkillManager
     
     manager = SkillManager()
     skills = manager.list()
@@ -227,7 +227,7 @@ run_test("技能管理器", test_instance_skill_manager)
 
 def test_instance_honcho():
     """测试 Honcho 记忆"""
-    from opentaiji.learning import HonchoMemory
+    from taiji_agent.learning import HonchoMemory
     
     honcho = HonchoMemory()
     
@@ -246,7 +246,7 @@ print("-" * 70)
 
 def test_wfgy_verify():
     """测试 WFGY 验证性能"""
-    from opentaiji import WFGYVerifier
+    from taiji_agent import WFGYVerifier
     
     verifier = WFGYVerifier()
     verifier.add_rule(r"\d+%", True, "百分比")
@@ -274,7 +274,7 @@ run_test("WFGY 验证 (10,000次)", test_wfgy_verify)
 
 def test_hallucination_detect():
     """测试幻觉检测性能"""
-    from opentaiji import HallucinationDetector
+    from taiji_agent import HallucinationDetector
     
     detector = HallucinationDetector()
     
@@ -308,7 +308,7 @@ run_test("幻觉检测 (25,000次)", test_hallucination_detect)
 
 def test_wfgy_consistency():
     """测试一致性检查"""
-    from opentaiji.wfgy import SelfConsistencyChecker
+    from taiji_agent.taiji_verify import SelfConsistencyChecker
     
     checker = SelfConsistencyChecker()
     
@@ -349,7 +349,7 @@ print("-" * 70)
 
 async def async_test_concurrent_verification():
     """并发验证测试"""
-    from opentaiji import WFGYVerifier
+    from taiji_agent import WFGYVerifier
     
     verifier = WFGYVerifier()
     
@@ -377,7 +377,7 @@ run_test("并发验证 (1,000任务)", test_concurrent_verification)
 
 async def async_test_concurrent_memory():
     """并发记忆操作测试"""
-    from opentaiji import SessionMemory
+    from taiji_agent import SessionMemory
     
     mem = SessionMemory()
     
@@ -414,7 +414,7 @@ print("-" * 70)
 
 def test_memory_save_get():
     """测试记忆保存和获取"""
-    from opentaiji import SessionMemory
+    from taiji_agent import SessionMemory
     
     mem = SessionMemory()
     
@@ -441,7 +441,7 @@ run_test("记忆保存/获取 (1,000次)", test_memory_save_get)
 
 def test_memory_search():
     """测试记忆搜索"""
-    from opentaiji import SessionMemory
+    from taiji_agent import SessionMemory
     
     mem = SessionMemory()
     
@@ -467,7 +467,7 @@ run_test("记忆搜索 (100次)", test_memory_search)
 
 def test_memory_todo():
     """测试 Todo 功能"""
-    from opentaiji import SessionMemory
+    from taiji_agent import SessionMemory
     
     mem = SessionMemory()
     
@@ -503,7 +503,7 @@ print("-" * 70)
 
 def test_skill_browse():
     """测试技能浏览"""
-    from opentaiji.skills import SkillManager
+    from taiji_agent.skills import SkillManager
     
     manager = SkillManager()
     
@@ -527,7 +527,7 @@ run_test("技能浏览 (1,000次)", test_skill_browse)
 
 def test_skill_create():
     """测试技能创建"""
-    from opentaiji.skills import SkillManager
+    from taiji_agent.skills import SkillManager
     
     manager = SkillManager()
     
@@ -559,7 +559,7 @@ run_test("技能创建 (50次)", test_skill_create)
 
 def test_skill_use():
     """测试技能使用"""
-    from opentaiji.skills import SkillManager
+    from taiji_agent.skills import SkillManager
     
     manager = SkillManager()
     
@@ -591,7 +591,7 @@ print("-" * 70)
 
 def test_tool_list():
     """测试工具列表"""
-    from opentaiji import ToolRegistry
+    from taiji_agent import ToolRegistry
     
     registry = ToolRegistry()
     
@@ -615,7 +615,7 @@ run_test("工具列表 (5,000次)", test_tool_list)
 
 def test_tool_execution():
     """测试工具执行"""
-    from opentaiji.tools import ToolRegistry
+    from taiji_agent.tools import ToolRegistry
     
     registry = ToolRegistry()
     
@@ -651,7 +651,7 @@ print("-" * 70)
 
 def test_soul_load():
     """测试 Soul 加载"""
-    from opentaiji import SoulLoader
+    from taiji_agent import SoulLoader
     
     loader = SoulLoader()
     
@@ -675,7 +675,7 @@ run_test("Soul 加载 (1,000次)", test_soul_load)
 
 def test_soul_inject():
     """测试 Soul 注入"""
-    from opentaiji.souls import SoulLoader, inject_soul
+    from taiji_agent.souls import SoulLoader, inject_soul
     
     loader = SoulLoader()
     soul = loader.load("default")
@@ -716,9 +716,9 @@ def test_memory_pressure():
     gc.collect()
     mem_before = process.memory_info().rss / 1024 / 1024
     
-    from opentaiji import TaijiAgent, AgentConfig
-    from opentaiji import WFGYVerifier, HallucinationDetector
-    from opentaiji import SessionMemory, ToolRegistry
+    from taiji_agent import TaijiAgent, AgentConfig
+    from taiji_agent import WFGYVerifier, HallucinationDetector
+    from taiji_agent import SessionMemory, ToolRegistry
     
     agents = []
     verifiers = []
@@ -757,7 +757,7 @@ print("-" * 70)
 
 def test_error_invalid_provider():
     """测试无效 Provider"""
-    from opentaiji import TaijiAgent, AgentConfig
+    from taiji_agent import TaijiAgent, AgentConfig
     
     try:
         agent = TaijiAgent(config=AgentConfig(provider="invalid_provider"))
@@ -772,7 +772,7 @@ run_test("无效 Provider 错误处理", test_error_invalid_provider)
 
 def test_error_missing_tool():
     """测试缺失工具"""
-    from opentaiji.tools import ToolRegistry
+    from taiji_agent.tools import ToolRegistry
     
     registry = ToolRegistry()
     
@@ -790,7 +790,7 @@ run_test("缺失工具错误处理", test_error_missing_tool)
 
 def test_error_empty_content():
     """测试空内容"""
-    from opentaiji import WFGYVerifier, HallucinationDetector
+    from taiji_agent import WFGYVerifier, HallucinationDetector
     
     verifier = WFGYVerifier()
     detector = HallucinationDetector()
